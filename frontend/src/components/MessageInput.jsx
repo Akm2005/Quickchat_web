@@ -31,14 +31,44 @@ const MessageInput = () => {
   const handleSendMessage = async (e) => {
     e.preventDefault();
     if (!text.trim() && !imagePreview) return;
-
+  
+    let uploadedFileName = null;
+  
+    // Upload image first
+    if (fileInputRef.current?.files?.[0]) {
+      const formData = new FormData();
+      formData.append("file", fileInputRef.current.files[0]);
+  
+      try {
+        const response = await fetch(
+          "https://api.rightships.com/upload",
+          {
+            method: "POST",
+            body: formData,
+            // credentials: "include", // important to include cookies
+          }
+        );
+  
+        if (!response.ok) {
+          throw new Error("Image upload failed");
+        }
+  
+        const data = await response.json();
+        uploadedFileName = data?.file_url || data?.file_url; // depends on API casing
+      } catch (err) {
+        toast.error("Failed to upload image");
+        console.error(err);
+        return;
+      }
+    }
+  
     try {
       await sendMessage({
         text: text.trim(),
-        image: imagePreview,
+        image: uploadedFileName, // send only FileName
       });
-
-      // Clear form
+  
+      // Reset
       setText("");
       setImagePreview(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -46,6 +76,7 @@ const MessageInput = () => {
       console.error("Failed to send message:", error);
     }
   };
+  
 
   return (
     <div className="p-4 w-full">
